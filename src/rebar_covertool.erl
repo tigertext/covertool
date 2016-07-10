@@ -20,7 +20,12 @@ eunit(Config, AppFile) ->
 %% Run after common tests. Convert coverage data exported after tests are
 %% executed into Cobertura format.
 ct(Config, AppFile) ->
-    generate_report(Config, AppFile, covertool_ct).
+    case is_empty_dir(AppFile) of
+        true ->
+            ok;
+        false ->
+            generate_report(Config, AppFile, covertool_ct)
+    end.
 
 generate_report(Config, AppFile, ConfigKey) ->
     AppName = get_app_name(Config, AppFile),
@@ -34,7 +39,7 @@ generate_report(Config, AppFile, ConfigKey) ->
                     CoverConfig = #config{appname = AppName,
                                           prefix_len = PrefixLen,
                                           output = To,
-                                          sources = "src/"},
+                                          sources = ["src/"]},
                     covertool:generate_report(CoverConfig,
                                               cover:imported_modules()),
                     file:close(CoverLog),
@@ -72,7 +77,9 @@ cover_init() ->
                          {error, _Reason} = ErrorStart ->
                              ErrorStart
                      end,
-    {ok, F} = file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]),
+    CoverLog = filename:join([?EUNIT_DIR, "cover.log"]),
+    ok = filelib:ensure_dir(CoverLog),
+    {ok, F} = file:open(CoverLog, [write, append]),
     group_leader(F, CoverPid),
     {ok, F}.
 
